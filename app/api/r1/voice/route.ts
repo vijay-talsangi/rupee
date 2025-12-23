@@ -5,8 +5,11 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/ge
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
 };
+
+// API Key for authentication (should match native app)
+const API_KEY = process.env.RUPEE_API_KEY;
 
 // Handle preflight requests
 export async function OPTIONS() {
@@ -146,6 +149,19 @@ Respond with JSON only, no explanation or markdown.`;
 
 export async function POST(request: Request): Promise<NextResponse<VoiceResponse>> {
   try {
+    // Validate API key from header
+    const apiKey = request.headers.get('X-API-Key');
+    if (!apiKey || apiKey !== API_KEY) {
+      return jsonResponse(
+        { 
+          success: false as const, 
+          error: "Unauthorized", 
+          errorCode: "API_ERROR" as const
+        },
+        401
+      );
+    }
+
     // Validate API key exists
     if (!process.env.GEMINI_API_KEY) {
       console.error("GEMINI_API_KEY not configured");
